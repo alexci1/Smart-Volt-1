@@ -15,9 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.smartvolt.ui.components.PanelPrincipalView
+import com.example.smartvolt.modelo.Usuario
 
 @Composable
 fun InicioOperarioView(
+    usuario: Usuario,
     onCerrarSesion: () -> Unit
 ) {
     PanelPrincipalView(
@@ -48,9 +50,7 @@ fun InicioOperarioView(
                     HistorialOperarioView()
                 }
 
-                3 -> {
-                    PerfilOperarioView()
-                }
+                3 -> PerfilOperarioView(usuario)
             }
         }
     )
