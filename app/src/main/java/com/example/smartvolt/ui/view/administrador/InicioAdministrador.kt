@@ -6,7 +6,9 @@ import com.example.smartvolt.ui.view.operario.InicioOperarioView
 import com.example.smartvolt.ui.view.supervisor.InicioSupervisorView
 import com.example.smartvolt.ui.view.administrador.InicioAdministradorView
 @Composable
-fun InicioAdministradorView() {
+fun InicioAdministradorView(
+    onCerrarSesion: () -> Unit
+) {
     PanelPrincipalView(
         nombreRol = "ADMINISTRADOR",
         titulo = "Administración de SmartVolt",
@@ -18,6 +20,7 @@ fun InicioAdministradorView() {
             "Gestión de faenas",
             "Reportes generales",
             "Registro de actividad"
-        )
+        ),
+        onCerrarSesion = onCerrarSesion
     )
 }

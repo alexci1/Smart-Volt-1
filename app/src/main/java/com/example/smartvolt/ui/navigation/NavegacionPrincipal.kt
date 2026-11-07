@@ -63,15 +63,48 @@ fun NavegacionPrincipal(
         }
 
         composable(Rutas.INICIO_OPERARIO) {
-            InicioOperarioView()
+            InicioOperarioView(
+                onCerrarSesion = {
+                    loginViewModel.cerrarSesion()
+
+                    navController.navigate(Rutas.LOGIN) {
+                        popUpTo(Rutas.INICIO_OPERARIO) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
 
         composable(Rutas.INICIO_SUPERVISOR) {
-            InicioSupervisorView()
+            InicioSupervisorView(
+                onCerrarSesion = {
+                    loginViewModel.cerrarSesion()
+
+                    navController.navigate(Rutas.LOGIN) {
+                        popUpTo(Rutas.INICIO_SUPERVISOR) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
 
         composable(Rutas.INICIO_ADMINISTRADOR) {
-            InicioAdministradorView()
+            InicioAdministradorView(
+                onCerrarSesion = {
+                    loginViewModel.cerrarSesion()
+
+                    navController.navigate(Rutas.LOGIN) {
+                        popUpTo(Rutas.INICIO_ADMINISTRADOR) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
     }
 }

@@ -110,4 +110,9 @@ class LoginViewModel(
             }
         }
     }
+
+    fun cerrarSesion() {
+        _uiState.value = LoginUiState()
+    }
+
 }

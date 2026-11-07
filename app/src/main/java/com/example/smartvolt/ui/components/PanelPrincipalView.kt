@@ -19,6 +19,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 
 
 @Composable
@@ -26,7 +28,8 @@ fun PanelPrincipalView(
     nombreRol: String,
     titulo: String,
     subtitulo: String,
-    modulos: List<String>
+    modulos: List<String>,
+    onCerrarSesion: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -80,6 +83,16 @@ fun PanelPrincipalView(
                     )
                 }
             }
+        }
+
+        Button(
+            onClick = onCerrarSesion,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error
+            )
+        ) {
+            Text("Cerrar sesión")
         }
 
         // Sección de módulos

@@ -5,7 +5,9 @@ import com.example.smartvolt.ui.components.PanelPrincipalView
 
 
 @Composable
-fun InicioSupervisorView() {
+fun InicioSupervisorView(
+    onCerrarSesion: () -> Unit
+) {
     PanelPrincipalView(
         nombreRol = "SUPERVISOR",
         titulo = "Panel de supervisión",
@@ -16,6 +18,7 @@ fun InicioSupervisorView() {
             "Revisión de jornadas",
             "Reportes de actividad",
             "Notificaciones"
-        )
+        ),
+        onCerrarSesion = onCerrarSesion
     )
 }
