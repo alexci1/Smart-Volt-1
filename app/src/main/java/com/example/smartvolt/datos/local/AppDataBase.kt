@@ -8,7 +8,7 @@ import android.content.Context
 import androidx.room.Room
 
 
-@Database(entities = [Usuario::class], version = 1, exportSchema = false)
+@Database(entities = [Usuario::class], version = 2, exportSchema = false)
 abstract class AppDataBase : RoomDatabase() {
 
     abstract fun usuarioDAO(): UsuarioDAO
