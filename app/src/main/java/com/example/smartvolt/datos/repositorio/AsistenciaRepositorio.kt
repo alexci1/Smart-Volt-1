@@ -1,3 +1,4 @@
+
 package com.example.smartvolt.datos.repositorio
 
 import com.example.smartvolt.datos.local.dao.AsistenciaDAO
@@ -13,6 +14,17 @@ class AsistenciaRepositorio(
         asistencia: Asistencia
     ): Long {
         return asistenciaDAO.registrarAsistencia(asistencia)
+    }
+
+    // Registrar la siguiente marcación de forma transaccional.
+    suspend fun registrarSiguienteMarcacion(
+        usuarioId: String,
+        fechaHora: Long
+    ): Asistencia {
+        return asistenciaDAO.registrarSiguienteMarcacion(
+            usuarioId = usuarioId,
+            fechaHora = fechaHora
+        )
     }
 
     // Consultar el historial de un operario.

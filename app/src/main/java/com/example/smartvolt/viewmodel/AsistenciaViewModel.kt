@@ -1,13 +1,16 @@
+
 package com.example.smartvolt.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartvolt.datos.repositorio.AsistenciaRepositorio
 import com.example.smartvolt.modelo.Asistencia
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 
 data class AsistenciaUiState(
     val historial: List<Asistencia> = emptyList(),
@@ -25,6 +28,9 @@ class AsistenciaViewModel(
     private val _uiState = MutableStateFlow(AsistenciaUiState())
     val uiState: StateFlow<AsistenciaUiState> = _uiState.asStateFlow()
 
+    // Impide que se ejecuten marcaciones simultáneas.
+    private val bloqueoMarcacion = Mutex()
+
     init {
         observarHistorial()
     }
@@ -34,7 +40,6 @@ class AsistenciaViewModel(
         viewModelScope.launch {
             repositorio.listarAsistenciasPorUsuario(usuarioId)
                 .collect { asistencias ->
-
                     _uiState.value = _uiState.value.copy(
                         historial = asistencias,
                         ultimaAsistencia = asistencias.firstOrNull()
@@ -43,10 +48,11 @@ class AsistenciaViewModel(
         }
     }
 
-    // Registrar la siguiente marcación correspondiente.
+    // Registrar la siguiente marcación mediante Room.
     fun registrarMarcacion() {
 
-        if (_uiState.value.cargando) return
+        // Si ya existe una operación, ignorar la nueva pulsación.
+        if (!bloqueoMarcacion.tryLock()) return
 
         viewModelScope.launch {
 
@@ -57,26 +63,15 @@ class AsistenciaViewModel(
             )
 
             try {
-
-                val ultima = repositorio.obtenerUltimaAsistencia(usuarioId)
-
-                val tipo = if (ultima?.tipo == "ENTRADA") {
-                    "SALIDA"
-                } else {
-                    "ENTRADA"
-                }
-
-                val asistencia = Asistencia(
+                // Room determina y registra la siguiente marcación
+                // dentro de una única transacción.
+                val asistencia = repositorio.registrarSiguienteMarcacion(
                     usuarioId = usuarioId,
-                    fechaHora = System.currentTimeMillis(),
-                    tipo = tipo
+                    fechaHora = System.currentTimeMillis()
                 )
 
-                repositorio.registrarAsistencia(asistencia)
-
                 _uiState.value = _uiState.value.copy(
-                    cargando = false,
-                    mensaje = if (tipo == "ENTRADA") {
+                    mensaje = if (asistencia.tipo == "ENTRADA") {
                         "Entrada registrada correctamente."
                     } else {
                         "Salida registrada correctamente."
@@ -84,12 +79,24 @@ class AsistenciaViewModel(
                     mensajeError = null
                 )
 
+            } catch (e: CancellationException) {
+                throw e
+
             } catch (e: Exception) {
 
                 _uiState.value = _uiState.value.copy(
-                    cargando = false,
+                    mensaje = null,
                     mensajeError = "No fue posible registrar la asistencia."
                 )
+
+            } finally {
+
+                // Liberar el estado de carga y el bloqueo.
+                _uiState.value = _uiState.value.copy(
+                    cargando = false
+                )
+
+                bloqueoMarcacion.unlock()
             }
         }
     }

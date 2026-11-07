@@ -1,9 +1,11 @@
+
 package com.example.smartvolt.datos.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.example.smartvolt.modelo.Asistencia
 import kotlinx.coroutines.flow.Flow
 
@@ -18,7 +20,7 @@ interface AsistenciaDAO {
     @Query("""
         SELECT * FROM asistencias
         WHERE usuarioId = :usuarioId
-        ORDER BY fechaHora DESC
+        ORDER BY fechaHora DESC, id DESC
     """)
     fun listarAsistenciasPorUsuario(
         usuarioId: String
@@ -28,10 +30,38 @@ interface AsistenciaDAO {
     @Query("""
         SELECT * FROM asistencias
         WHERE usuarioId = :usuarioId
-        ORDER BY fechaHora DESC
+        ORDER BY fechaHora DESC, id DESC
         LIMIT 1
     """)
     suspend fun obtenerUltimaAsistencia(
         usuarioId: String
     ): Asistencia?
+
+    // Registrar la siguiente marcación dentro de una transacción.
+    @Transaction
+    suspend fun registrarSiguienteMarcacion(
+        usuarioId: String,
+        fechaHora: Long
+    ): Asistencia {
+
+        val ultima = obtenerUltimaAsistencia(usuarioId)
+
+        val tipo = when (ultima?.tipo) {
+            "ENTRADA" -> "SALIDA"
+            "SALIDA", null -> "ENTRADA"
+            else -> throw IllegalStateException(
+                "Tipo de asistencia no válido."
+            )
+        }
+
+        val asistencia = Asistencia(
+            usuarioId = usuarioId,
+            fechaHora = fechaHora,
+            tipo = tipo
+        )
+
+        registrarAsistencia(asistencia)
+
+        return asistencia
+    }
 }
