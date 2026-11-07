@@ -1,16 +1,23 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+
+    alias(libs.plugins.ksp) // agregar
+    alias(libs.plugins.room) // aplicar aquí el alias del plugin
 }
 
 android {
-    namespace = "com.example.smartvolt"
+    namespace = "com.example.myapplication"
     compileSdk {
         version = release(37)
     }
 
+    // --- BLOQUE OBLIGATORIO PARA EL PLUGIN DE ROOM ---
+    room {
+        schemaDirectory("$projectDir/schemas")
+    }
     defaultConfig {
-        applicationId = "com.example.smartvolt"
+        applicationId = "com.example.myapplication"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
@@ -36,7 +43,16 @@ android {
     }
 }
 
+
 dependencies {
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx) // Soporte para Corrutinas y Flow con Room
+    ksp(libs.room.compiler)       // Procesador de anotaciones usando KSP
+    // --- VIEWMODEL PARA COMPOSE ---
+    implementation(libs.compose.viewmodel) // Permite usar 'viewModel()' en Compose
+    // --- ICONOS EXTENDIDOS DE MATERIAL ---
+    implementation(libs.compose.icons.extended)
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
