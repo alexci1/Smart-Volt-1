@@ -6,16 +6,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import com.example.smartvolt.datos.local.AppDataBase
 import com.example.smartvolt.datos.seguridad.GestorContrasenas
 import com.example.smartvolt.modelo.Usuario
+import com.example.smartvolt.ui.navigation.NavegacionPrincipal
 import com.example.smartvolt.ui.theme.SmartVoltTheme
-import com.example.smartvolt.ui.view.login.LoginView
 import com.example.smartvolt.viewmodel.LoginViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import android.widget.Toast
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -29,18 +28,18 @@ class MainActivity : ComponentActivity() {
         val loginViewModel = LoginViewModel(usuarioDAO)
 
         lifecycleScope.launch(Dispatchers.IO) {
-
             val usuarioExistente =
                 usuarioDAO.obtenerUsuarioPorId("OP-001")
 
             if (usuarioExistente == null) {
-
                 val usuarioPrueba = Usuario(
                     id = "OP-001",
-                    contrasenaHash = GestorContrasenas.generarHash("123456"),
+                    contrasenaHash =
+                        GestorContrasenas.generarHash("123456"),
                     nombreCompleto = "Juan Pérez",
                     cargo = "Operador",
-                    rol = "OPERARIO"
+                    rol = "OPERARIO",
+                    activo = true
                 )
 
                 usuarioDAO.agregarUsuario(usuarioPrueba)
@@ -49,15 +48,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             SmartVoltTheme {
-                LoginView(
-                    viewModel = loginViewModel,
-                    onLoginExitoso = { usuario ->
-                        Toast.makeText(
-                            this@MainActivity,
-                            "¡Bienvenido, ${usuario.nombreCompleto}!",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+
+                val navController = rememberNavController()
+
+                NavegacionPrincipal(
+                    navController = navController,
+                    loginViewModel = loginViewModel
                 )
             }
         }

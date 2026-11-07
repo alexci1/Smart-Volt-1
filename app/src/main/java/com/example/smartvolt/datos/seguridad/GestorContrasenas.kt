@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.datos.seguridad
 
 import android.util.Base64

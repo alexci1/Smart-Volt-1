@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.modelo
 
 import androidx.room.Entity
