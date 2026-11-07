@@ -35,7 +35,7 @@ fun PanelPrincipalView(
     subtitulo: String,
     modulos: List<String>,
     onCerrarSesion: () -> Unit,
-    contenidoPersonalizado: (@Composable (Int) -> Unit)? = null
+    contenidoPersonalizado: (@Composable (Int, (Int) -> Unit) -> Unit)? = null
 ) {
     var indiceSeleccionado by rememberSaveable(nombreRol) {
         mutableStateOf(0)
@@ -130,7 +130,9 @@ fun PanelPrincipalView(
             // Contenido de la sección seleccionada
             if (contenidoPersonalizado != null) {
 
-                contenidoPersonalizado(indiceSeleccionado)
+                contenidoPersonalizado(indiceSeleccionado) { nuevoIndice ->
+                    indiceSeleccionado = nuevoIndice
+                }
 
             } else {
 

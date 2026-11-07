@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.smartvolt.ui.components.PanelPrincipalView
 import com.example.smartvolt.modelo.Usuario
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun InicioOperarioView(
@@ -34,13 +36,13 @@ fun InicioOperarioView(
         ),
         onCerrarSesion = onCerrarSesion,
 
-        contenidoPersonalizado = { indice ->
+        contenidoPersonalizado = { indice, cambiarSeccion ->
 
             when (indice) {
 
-                0 -> {
-                    ContenidoInicioOperario()
-                }
+                0 -> ContenidoInicioOperario(
+                    onCambiarSeccion = cambiarSeccion
+                )
 
                 1 -> {
                     AsistenciaOperarioView()
@@ -57,12 +59,12 @@ fun InicioOperarioView(
 }
 
 @Composable
-private fun ContenidoInicioOperario() {
-
+private fun ContenidoInicioOperario(
+    onCambiarSeccion: (Int) -> Unit
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.primary,
@@ -72,7 +74,6 @@ private fun ContenidoInicioOperario() {
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-
                 Text(
                     text = "SMARTVOLT",
                     style = MaterialTheme.typography.labelLarge,
@@ -105,10 +106,14 @@ private fun ContenidoInicioOperario() {
             "Mi perfil"
         )
 
-        accesos.forEach { acceso ->
+        accesos.forEachIndexed { indice, acceso ->
 
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onCambiarSeccion(indice + 1)
+                    },
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface
