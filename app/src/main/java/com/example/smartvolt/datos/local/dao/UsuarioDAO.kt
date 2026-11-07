@@ -1,4 +1,4 @@
-package com.example.smartvolt.modelo
+package com.example.smartvolt.datos.local.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Update
 import androidx.room.Delete
 import androidx.room.Query
+import com.example.smartvolt.modelo.Usuario
 import kotlinx.coroutines.flow.Flow
 
 @Dao

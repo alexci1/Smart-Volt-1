@@ -1,3 +1,4 @@
+
 package com.example.smartvolt.modelo
 
 import androidx.room.Entity
@@ -8,8 +9,14 @@ data class Usuario(
 
     @PrimaryKey
     val id: String,
-    val password: String,
-    val nombreCompleto: String,
-    val cargo: String
-)
 
+    val contrasenaHash: String,
+
+    val nombreCompleto: String,
+
+    val cargo: String,
+
+    val rol: String,
+
+    val activo: Boolean = true
+)

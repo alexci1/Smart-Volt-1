@@ -7,8 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import com.example.smartvolt.modelo.Usuario
 import com.example.smartvolt.ui.theme.SmartVoltTheme
-import com.example.smartvolt.ui.view.LoginView
-import com.example.smartvolt.viewmodel.AppDataBase
+import com.example.smartvolt.ui.view.login.LoginView
+import com.example.smartvolt.datos.local.AppDataBase
 import com.example.smartvolt.viewmodel.LoginViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -3,7 +3,7 @@ package com.example.smartvolt.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartvolt.modelo.Usuario
-import com.example.smartvolt.modelo.UsuarioDAO
+import com.example.smartvolt.datos.local.dao.UsuarioDAO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

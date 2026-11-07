@@ -1,9 +1,9 @@
-package com.example.smartvolt.viewmodel
+package com.example.smartvolt.datos.local
 
 import  com.example.smartvolt.modelo.Usuario
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.smartvolt.modelo.UsuarioDAO
+import com.example.smartvolt.datos.local.dao.UsuarioDAO
 import android.content.Context
 import androidx.room.Room
 
