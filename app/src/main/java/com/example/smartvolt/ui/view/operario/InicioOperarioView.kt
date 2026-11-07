@@ -1,6 +1,7 @@
 
 package com.example.smartvolt.ui.view.operario
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,18 +13,49 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.smartvolt.ui.components.PanelPrincipalView
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smartvolt.datos.local.AppDataBase
+import com.example.smartvolt.datos.repositorio.AsistenciaRepositorio
 import com.example.smartvolt.modelo.Usuario
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.Color
+import com.example.smartvolt.ui.components.PanelPrincipalView
+import com.example.smartvolt.viewmodel.AsistenciaViewModel
+import com.example.smartvolt.viewmodel.AsistenciaViewModelFactory
 
 @Composable
 fun InicioOperarioView(
     usuario: Usuario,
     onCerrarSesion: () -> Unit
 ) {
+    val contexto = LocalContext.current
+
+    // Obtener la base de datos local.
+    val baseDatos = remember(contexto) {
+        AppDataBase.obtenerBaseDatos(contexto)
+    }
+
+    // Crear el repositorio de asistencia.
+    val repositorio = remember(baseDatos) {
+        AsistenciaRepositorio(baseDatos.asistenciaDAO())
+    }
+
+    // Crear la fábrica del ViewModel.
+    val factory = remember(repositorio, usuario.id) {
+        AsistenciaViewModelFactory(
+            repositorio = repositorio,
+            usuarioId = usuario.id
+        )
+    }
+
+    // Obtener el ViewModel asociado al usuario autenticado.
+    val asistenciaViewModel: AsistenciaViewModel = viewModel(
+        key = usuario.id,
+        factory = factory
+    )
+
     PanelPrincipalView(
         nombreRol = "OPERARIO",
         titulo = "Bienvenido al área operativa",
@@ -44,13 +76,11 @@ fun InicioOperarioView(
                     onCambiarSeccion = cambiarSeccion
                 )
 
-                1 -> {
-                    AsistenciaOperarioView()
-                }
+                1 -> AsistenciaOperarioView(
+                    viewModel = asistenciaViewModel
+                )
 
-                2 -> {
-                    HistorialOperarioView()
-                }
+                2 -> HistorialOperarioView()
 
                 3 -> PerfilOperarioView(usuario)
             }
@@ -65,6 +95,7 @@ private fun ContenidoInicioOperario(
     Column(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
+
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.primary,
