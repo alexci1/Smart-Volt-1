@@ -40,7 +40,7 @@ class LoginViewModel(private val usuarioDAO: UsuarioDAO) : ViewModel(){
 
     //VALIDACIÓN BÁSICA FORMULARIO//
     if (idActual.isEmpty() || passwordActual.isEmpty()) {
-        _uiState.update { it.copy(mensajeError = "Por favor, ingresa tu ID y PASSWORD.") }
+        _uiState.update { it.copy(mensajeError = "Por favor, ingresa tu ID y CONTRASEÑA.") }
         return
     }
 

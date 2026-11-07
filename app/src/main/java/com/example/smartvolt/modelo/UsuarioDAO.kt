@@ -2,6 +2,7 @@ package com.example.smartvolt.modelo
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Update
 import androidx.room.Delete
 import androidx.room.Query
@@ -13,7 +14,7 @@ interface UsuarioDAO {
     @Query("SELECT * FROM usuarios WHERE id = :id AND password = :password")
     suspend fun validarLogin(id: String, password: String): Usuario?
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun agregarUsuario(usuario: Usuario)
 
     @Delete

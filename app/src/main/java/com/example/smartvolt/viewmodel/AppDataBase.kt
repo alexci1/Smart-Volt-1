@@ -23,7 +23,7 @@ abstract class AppDataBase : RoomDatabase() {
                     context.applicationContext,
                     AppDataBase::class.java,
                     "asistencia_faena_db"
-                ).build()
+                ).fallbackToDestructiveMigration(dropAllTables = true).build()
                 INSTANCIA = instancia
                 instancia
             }
