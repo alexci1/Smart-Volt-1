@@ -80,7 +80,9 @@ fun InicioOperarioView(
                     viewModel = asistenciaViewModel
                 )
 
-                2 -> HistorialOperarioView()
+                2 -> HistorialOperarioView(
+                    viewModel = asistenciaViewModel
+                )
 
                 3 -> PerfilOperarioView(usuario)
             }
