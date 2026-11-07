@@ -1,5 +1,4 @@
-
-package com.example.smartvolt.ui.view
+package com.example.smartvolt.ui.view.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

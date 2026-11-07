@@ -1,14 +1,14 @@
-package com.example.smartvolt.viewmodel
+package com.example.smartvolt.datos.local
 
 import  com.example.smartvolt.modelo.Usuario
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.smartvolt.modelo.UsuarioDAO
+import com.example.smartvolt.datos.local.dao.UsuarioDAO
 import android.content.Context
 import androidx.room.Room
 
 
-@Database(entities = [Usuario::class], version = 1, exportSchema = false)
+@Database(entities = [Usuario::class], version = 2, exportSchema = false)
 abstract class AppDataBase : RoomDatabase() {
 
     abstract fun usuarioDAO(): UsuarioDAO

@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.myapplication"
+    namespace = "com.example.smartvolt"
     compileSdk {
         version = release(37)
     }
@@ -17,7 +17,7 @@ android {
         schemaDirectory("$projectDir/schemas")
     }
     defaultConfig {
-        applicationId = "com.example.myapplication"
+        applicationId = "com.example.smartvolt"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
@@ -68,4 +68,5 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.androidx.navigation.compose)
 }
