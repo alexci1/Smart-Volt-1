@@ -8,7 +8,7 @@ data class Usuario(
 
     @PrimaryKey
     val id: String,
-    val correo: String,
+    val password: String,
     val nombreCompleto: String,
     val cargo: String
 )
