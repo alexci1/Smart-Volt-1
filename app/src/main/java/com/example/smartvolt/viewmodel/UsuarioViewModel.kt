@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 data class UsuarioUiState(
     val usuarios: List<Usuario> = emptyList(),
@@ -35,7 +34,6 @@ class UsuarioViewModel(
 
     private val bloqueoCreacion = Mutex()
     private val bloqueoActualizacion = Mutex()
-
     private val bloqueoEdicion = Mutex()
 
     init {
@@ -82,6 +80,7 @@ class UsuarioViewModel(
                 val nombreLimpio = nombreCompleto.trim()
                 val cargoLimpio = cargo.trim()
                 val rolLimpio = rol.trim().uppercase()
+
                 val supervisorLimpio = supervisorId
                     ?.trim()
                     ?.uppercase()
@@ -127,6 +126,17 @@ class UsuarioViewModel(
                 if (repositorio.existeUsuario(idLimpio)) {
                     _uiState.value = _uiState.value.copy(
                         mensajeError = "Ya existe un usuario con ese ID."
+                    )
+                    return@launch
+                }
+
+                // Evitar que el usuario sea su propio supervisor.
+                if (
+                    rolLimpio == "OPERARIO" &&
+                    supervisorLimpio == idLimpio
+                ) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "Un usuario no puede ser su propio supervisor."
                     )
                     return@launch
                 }
@@ -209,6 +219,32 @@ class UsuarioViewModel(
                     mensajeError = null
                 )
 
+                // Obtener el usuario original desde la base de datos.
+                val usuario = repositorio.obtenerUsuarioPorId(id)
+
+                if (usuario == null) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "No se encontró el usuario seleccionado."
+                    )
+                    return@launch
+                }
+
+                // No permitir desactivar supervisores con operarios activos.
+                if (
+                    usuario.rol == "SUPERVISOR" &&
+                    !activo
+                ) {
+                    val operariosActivos =
+                        repositorio.contarOperariosActivosPorSupervisor(id)
+
+                    if (operariosActivos > 0) {
+                        _uiState.value = _uiState.value.copy(
+                            mensajeError = "No puedes desactivar este supervisor porque tiene $operariosActivos operario(s) activo(s) asignado(s)."
+                        )
+                        return@launch
+                    }
+                }
+
                 repositorio.actualizarEstadoUsuario(id, activo)
 
                 _uiState.value = _uiState.value.copy(
@@ -216,7 +252,8 @@ class UsuarioViewModel(
                         "Usuario activado correctamente."
                     } else {
                         "Usuario desactivado correctamente."
-                    }
+                    },
+                    mensajeError = null
                 )
 
             } catch (e: CancellationException) {
@@ -310,6 +347,17 @@ class UsuarioViewModel(
                     mensajeError = null
                 )
 
+                // Consultar el registro original.
+                val usuarioOriginal =
+                    repositorio.obtenerUsuarioPorId(usuario.id)
+
+                if (usuarioOriginal == null) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "No se encontró el usuario que deseas editar."
+                    )
+                    return@launch
+                }
+
                 val nombreLimpio = usuario.nombreCompleto.trim()
                 val cargoLimpio = usuario.cargo.trim()
                 val rolLimpio = usuario.rol.trim().uppercase()
@@ -339,6 +387,25 @@ class UsuarioViewModel(
                     return@launch
                 }
 
+                // No permitir cambiar el rol de un supervisor
+                // mientras tenga operarios asignados.
+                if (
+                    usuarioOriginal.rol == "SUPERVISOR" &&
+                    rolLimpio != "SUPERVISOR"
+                ) {
+                    val operariosAsignados =
+                        repositorio.contarOperariosPorSupervisor(
+                            usuarioOriginal.id
+                        )
+
+                    if (operariosAsignados > 0) {
+                        _uiState.value = _uiState.value.copy(
+                            mensajeError = "No puedes cambiar el rol de este supervisor porque tiene $operariosAsignados operario(s) asignado(s)."
+                        )
+                        return@launch
+                    }
+                }
+
                 // Validar supervisor de operarios.
                 val supervisorId = if (rolLimpio == "OPERARIO") {
                     usuario.supervisorId
@@ -349,6 +416,15 @@ class UsuarioViewModel(
                     null
                 }
 
+                // Evitar que un usuario sea su propio supervisor.
+                if (supervisorId == usuarioOriginal.id) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "Un usuario no puede ser su propio supervisor."
+                    )
+                    return@launch
+                }
+
+                // Validar que el supervisor exista y esté activo.
                 if (
                     rolLimpio == "OPERARIO" &&
                     supervisorId != null
@@ -366,7 +442,8 @@ class UsuarioViewModel(
                 }
 
                 // Construir usuario actualizado.
-                val usuarioActualizado = usuario.copy(
+                // Se conservan contraseña, estado y faena originales.
+                val usuarioActualizado = usuarioOriginal.copy(
                     nombreCompleto = nombreLimpio,
                     cargo = cargoLimpio,
                     rol = rolLimpio,
@@ -396,10 +473,42 @@ class UsuarioViewModel(
     // ELIMINAR USUARIO
     // --------------------------------------------------
 
+
     fun eliminarUsuario(usuario: Usuario) {
         viewModelScope.launch {
             try {
-                repositorio.eliminarUsuario(usuario)
+                _uiState.value = _uiState.value.copy(
+                    mensaje = null,
+                    mensajeError = null
+                )
+
+                // Consultar el usuario directamente desde la base de datos.
+                val usuarioOriginal =
+                    repositorio.obtenerUsuarioPorId(usuario.id)
+
+                if (usuarioOriginal == null) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "No se encontró el usuario que deseas eliminar."
+                    )
+                    return@launch
+                }
+
+                // Proteger supervisores con operarios asignados.
+                if (usuarioOriginal.rol == "SUPERVISOR") {
+                    val operariosAsignados =
+                        repositorio.contarOperariosPorSupervisor(
+                            usuarioOriginal.id
+                        )
+
+                    if (operariosAsignados > 0) {
+                        _uiState.value = _uiState.value.copy(
+                            mensajeError = "No puedes eliminar este supervisor porque tiene $operariosAsignados operario(s) asignado(s). Reasigna primero a su personal."
+                        )
+                        return@launch
+                    }
+                }
+
+                repositorio.eliminarUsuario(usuarioOriginal)
 
                 _uiState.value = _uiState.value.copy(
                     mensaje = "Usuario eliminado correctamente.",
@@ -415,6 +524,7 @@ class UsuarioViewModel(
             }
         }
     }
+
 
     // --------------------------------------------------
     // LIMPIAR MENSAJES

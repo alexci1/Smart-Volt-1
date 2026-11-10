@@ -76,4 +76,18 @@ class UsuarioRepositorio(
     ): Usuario? {
         return usuarioDAO.obtenerSupervisorActivo(supervisorId)
     }
+
+    // Contar todos los operarios asignados a un supervisor.
+    suspend fun contarOperariosPorSupervisor(
+        supervisorId: String
+    ): Int {
+        return usuarioDAO.contarOperariosPorSupervisor(supervisorId)
+    }
+
+    // Contar solamente los operarios activos.
+    suspend fun contarOperariosActivosPorSupervisor(
+        supervisorId: String
+    ): Int {
+        return usuarioDAO.contarOperariosActivosPorSupervisor(supervisorId)
+    }
 }

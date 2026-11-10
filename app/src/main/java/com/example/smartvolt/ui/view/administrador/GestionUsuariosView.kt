@@ -63,6 +63,10 @@ fun GestionUsuariosView(
         mutableStateOf<Usuario?>(null)
     }
 
+    var usuarioPorEliminar by remember {
+        mutableStateOf<Usuario?>(null)
+    }
+
     // Cerrar formularios después de una operación exitosa.
     LaunchedEffect(estado.mensaje) {
         when (estado.mensaje) {
@@ -225,6 +229,10 @@ fun GestionUsuariosView(
                             onEditar = {
                                 usuarioViewModel.limpiarMensajes()
                                 usuarioEditando = usuario
+                            },
+                            onEliminar = {
+                                usuarioViewModel.limpiarMensajes()
+                                usuarioPorEliminar = usuario
                             }
                         )
                     }
@@ -275,7 +283,60 @@ fun GestionUsuariosView(
             }
         )
     }
+
+    // CONFIRMACIÓN DE ELIMINACIÓN
+    usuarioPorEliminar?.let { usuario ->
+
+        AlertDialog(
+            onDismissRequest = {
+                usuarioPorEliminar = null
+            },
+            shape = RoundedCornerShape(18.dp),
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = "Eliminar usuario",
+                    color = AzulOscuro,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Estás seguro de que deseas eliminar a ${usuario.nombreCompleto} (${usuario.id})? Esta acción no se puede deshacer.",
+                    color = TextoSecundario
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        usuarioViewModel.eliminarUsuario(usuario)
+                        usuarioPorEliminar = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFBA3030),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Eliminar definitivamente")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        usuarioPorEliminar = null
+                    }
+                ) {
+                    Text(
+                        text = "Cancelar",
+                        color = TextoSecundario
+                    )
+                }
+            }
+        )
+    }
 }
+
+
 
 // --------------------------------------------------
 // FORMULARIO DE CREACIÓN
@@ -580,7 +641,8 @@ private fun TarjetaUsuario(
     usuario: Usuario,
     actualizando: Boolean,
     onCambiarEstado: (Boolean) -> Unit,
-    onEditar: () -> Unit
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -643,17 +705,35 @@ private fun TarjetaUsuario(
                     color = TextoSecundario
                 )
 
-                OutlinedButton(
-                    onClick = onEditar,
-                    enabled = !actualizando,
-                    shape = RoundedCornerShape(8.dp),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 6.dp)
                 ) {
-                    Text(
-                        text = "Editar usuario",
-                        color = AzulOscuro,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    OutlinedButton(
+                        onClick = onEditar,
+                        enabled = !actualizando,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Editar",
+                            color = AzulOscuro,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = onEliminar,
+                        enabled = !actualizando,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFFBA3030))
+                    ) {
+                        Text(
+                            text = "Eliminar",
+                            color = Color(0xFFBA3030),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
 

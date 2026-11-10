@@ -67,4 +67,25 @@ interface UsuarioDAO {
     suspend fun obtenerSupervisorActivo(
         supervisorId: String
     ): Usuario?
+
+    // Contar todos los operarios asignados a un supervisor.
+    @Query("""
+    SELECT COUNT(*) FROM usuarios
+    WHERE supervisorId = :supervisorId
+    AND rol = 'OPERARIO'
+    """)
+    suspend fun contarOperariosPorSupervisor(
+        supervisorId: String
+    ): Int
+
+    // Contar solamente los operarios activos asignados a un supervisor.
+    @Query("""
+    SELECT COUNT(*) FROM usuarios
+    WHERE supervisorId = :supervisorId
+    AND rol = 'OPERARIO'
+    AND activo = 1
+    """)
+    suspend fun contarOperariosActivosPorSupervisor(
+        supervisorId: String
+    ): Int
 }
