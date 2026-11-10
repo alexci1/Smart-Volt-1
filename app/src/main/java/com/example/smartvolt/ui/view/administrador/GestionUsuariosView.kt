@@ -1,28 +1,45 @@
+
 package com.example.smartvolt.ui.view.administrador
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.smartvolt.modelo.Usuario
 import com.example.smartvolt.ui.theme.AzulMedio
@@ -38,10 +55,27 @@ fun GestionUsuariosView(
 ) {
     val estado by usuarioViewModel.uiState.collectAsState()
 
+    var mostrarFormulario by remember {
+        mutableStateOf(false)
+    }
+
+    // Cerrar el formulario cuando el usuario se crea correctamente.
+    LaunchedEffect(estado.mensaje) {
+        if (estado.mensaje == "Usuario creado correctamente.") {
+            mostrarFormulario = false
+        }
+    }
+
+    val supervisores = estado.usuarios.filter {
+        it.rol == "SUPERVISOR" && it.activo
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+
+        // ENCABEZADO
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -66,6 +100,27 @@ fun GestionUsuariosView(
             )
         }
 
+        // BOTÓN CREAR USUARIO
+        Button(
+            onClick = {
+                usuarioViewModel.limpiarMensajes()
+                mostrarFormulario = true
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AzulOscuro,
+                contentColor = VerdeVolt
+            )
+        ) {
+            Text(
+                text = "+ Crear usuario",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
+
+        // MENSAJE DE ÉXITO
         estado.mensaje?.let { mensaje ->
             Surface(
                 color = Color(0xFFEBFBEE),
@@ -81,6 +136,7 @@ fun GestionUsuariosView(
             }
         }
 
+        // MENSAJE DE ERROR
         estado.mensajeError?.let { error ->
             Surface(
                 color = Color(0xFFFFEEEE),
@@ -96,6 +152,7 @@ fun GestionUsuariosView(
             }
         }
 
+        // LISTADO DE USUARIOS
         when {
             estado.cargando && estado.usuarios.isEmpty() -> {
                 CircularProgressIndicator(
@@ -135,7 +192,10 @@ fun GestionUsuariosView(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = VerdeVolt,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 6.dp
+                        )
                     )
                 }
 
@@ -158,7 +218,330 @@ fun GestionUsuariosView(
             }
         }
     }
+
+    // FORMULARIO DE CREACIÓN
+    if (mostrarFormulario) {
+        FormularioCrearUsuario(
+            supervisores = supervisores,
+            creando = estado.creandoUsuario,
+            mensajeError = estado.mensajeError,
+            onCerrar = {
+                if (!estado.creandoUsuario) {
+                    mostrarFormulario = false
+                    usuarioViewModel.limpiarMensajes()
+                }
+            },
+            onCrear = { id, nombre, contrasena, cargo, rol, supervisorId ->
+                usuarioViewModel.crearUsuario(
+                    id = id,
+                    nombreCompleto = nombre,
+                    contrasena = contrasena,
+                    cargo = cargo,
+                    rol = rol,
+                    supervisorId = supervisorId
+                )
+            }
+        )
+    }
 }
+
+// --------------------------------------------------
+// FORMULARIO DE CREACIÓN
+// --------------------------------------------------
+
+@Composable
+private fun FormularioCrearUsuario(
+    supervisores: List<Usuario>,
+    creando: Boolean,
+    mensajeError: String?,
+    onCerrar: () -> Unit,
+    onCrear: (
+        String,
+        String,
+        String,
+        String,
+        String,
+        String?
+    ) -> Unit
+) {
+    var id by remember { mutableStateOf("") }
+    var nombre by remember { mutableStateOf("") }
+    var contrasena by remember { mutableStateOf("") }
+    var cargo by remember { mutableStateOf("") }
+    var rol by remember { mutableStateOf("OPERARIO") }
+    var supervisorId by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        shape = RoundedCornerShape(18.dp),
+        containerColor = Color.White,
+        title = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Nuevo usuario",
+                    color = AzulOscuro,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+
+                Text(
+                    text = "Completa los datos de la nueva cuenta.",
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+
+                OutlinedTextField(
+                    value = id,
+                    onValueChange = { id = it.uppercase() },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("ID de usuario") },
+                    placeholder = { Text("Ej. OP-002") },
+                    singleLine = true,
+                    enabled = !creando
+                )
+
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Nombre completo") },
+                    placeholder = { Text("Ej. Juan Pérez") },
+                    singleLine = true,
+                    enabled = !creando
+                )
+
+                OutlinedTextField(
+                    value = contrasena,
+                    onValueChange = { contrasena = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Contraseña") },
+                    placeholder = { Text("Mínimo 6 caracteres") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !creando
+                )
+
+                OutlinedTextField(
+                    value = cargo,
+                    onValueChange = { cargo = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Cargo") },
+                    placeholder = { Text("Ej. Operador eléctrico") },
+                    singleLine = true,
+                    enabled = !creando
+                )
+
+                Text(
+                    text = "ROL DEL USUARIO",
+                    color = TextoSecundario,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                SelectorDesplegable(
+                    valor = rol,
+                    opciones = listOf(
+                        "OPERARIO",
+                        "SUPERVISOR",
+                        "ADMINISTRADOR"
+                    ),
+                    habilitado = !creando,
+                    alSeleccionar = {
+                        rol = it
+                        supervisorId = ""
+                    }
+                )
+
+                if (rol == "OPERARIO") {
+                    Text(
+                        text = "SUPERVISOR ASIGNADO",
+                        color = TextoSecundario,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    SelectorDesplegable(
+                        valor = supervisorId,
+                        opciones = listOf("") + supervisores.map { it.id },
+                        habilitado = !creando,
+                        textoVacio = "Sin supervisor",
+                        etiqueta = { seleccionado ->
+                            if (seleccionado.isBlank()) {
+                                "Sin supervisor"
+                            } else {
+                                val supervisor = supervisores.find {
+                                    it.id == seleccionado
+                                }
+                                supervisor?.let {
+                                    "${it.nombreCompleto} (${it.id})"
+                                } ?: seleccionado
+                            }
+                        },
+                        alSeleccionar = {
+                            supervisorId = it
+                        }
+                    )
+
+                    if (supervisores.isEmpty()) {
+                        Text(
+                            text = "No hay supervisores activos registrados.",
+                            color = TextoSecundario,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                mensajeError?.let { error ->
+                    Surface(
+                        color = Color(0xFFFFEEEE),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = error,
+                            color = Color(0xFFBA3030),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onCrear(
+                        id,
+                        nombre,
+                        contrasena,
+                        cargo,
+                        rol,
+                        supervisorId.takeIf {
+                            rol == "OPERARIO" && it.isNotBlank()
+                        }
+                    )
+                },
+                enabled = !creando,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AzulOscuro,
+                    contentColor = VerdeVolt
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                if (creando) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = VerdeVolt,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Crear usuario",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onCerrar,
+                enabled = !creando
+            ) {
+                Text(
+                    text = "Cancelar",
+                    color = TextoSecundario
+                )
+            }
+        }
+    )
+}
+
+// --------------------------------------------------
+// SELECTOR DESPLEGABLE REUTILIZABLE
+// --------------------------------------------------
+
+@Composable
+private fun SelectorDesplegable(
+    valor: String,
+    opciones: List<String>,
+    habilitado: Boolean,
+    alSeleccionar: (String) -> Unit,
+    textoVacio: String = "Seleccionar",
+    etiqueta: (String) -> String = { it }
+) {
+    var expandido by remember {
+        mutableStateOf(false)
+    }
+
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedButton(
+            onClick = { expandido = true },
+            enabled = habilitado,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (valor.isBlank()) {
+                        textoVacio
+                    } else {
+                        etiqueta(valor)
+                    },
+                    color = AzulOscuro
+                )
+
+                Text(
+                    text = "▼",
+                    color = TextoSecundario
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expandido,
+            onDismissRequest = { expandido = false },
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            opciones.forEach { opcion ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = if (opcion.isBlank()) {
+                                textoVacio
+                            } else {
+                                etiqueta(opcion)
+                            }
+                        )
+                    },
+                    onClick = {
+                        alSeleccionar(opcion)
+                        expandido = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+// --------------------------------------------------
+// TARJETA DE USUARIO
+// --------------------------------------------------
 
 @Composable
 private fun TarjetaUsuario(
@@ -197,15 +580,26 @@ private fun TarjetaUsuario(
                     )
 
                     Surface(
-                        color = if (usuario.activo) Color(0xFFEBFBEE) else Color(0xFFFFEEEE),
+                        color = if (usuario.activo) {
+                            Color(0xFFEBFBEE)
+                        } else {
+                            Color(0xFFFFEEEE)
+                        },
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = if (usuario.activo) "ACTIVA" else "INACTIVA",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(
+                                horizontal = 6.dp,
+                                vertical = 2.dp
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (usuario.activo) Color(0xFF27834A) else Color(0xFFBA3030)
+                            color = if (usuario.activo) {
+                                Color(0xFF27834A)
+                            } else {
+                                Color(0xFFBA3030)
+                            }
                         )
                     }
                 }

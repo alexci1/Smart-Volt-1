@@ -14,6 +14,31 @@ class UsuarioRepositorio(
         return usuarioDAO.listarUsuarios()
     }
 
+    // Buscar un usuario por su ID.
+    suspend fun obtenerUsuarioPorId(id: String): Usuario? {
+        return usuarioDAO.obtenerUsuarioPorId(id)
+    }
+
+    // Comprobar si un ID ya está registrado.
+    suspend fun existeUsuario(id: String): Boolean {
+        return usuarioDAO.obtenerUsuarioPorId(id) != null
+    }
+
+    // Crear un nuevo usuario.
+    suspend fun crearUsuario(usuario: Usuario) {
+        usuarioDAO.agregarUsuario(usuario)
+    }
+
+    // Actualizar los datos de un usuario.
+    suspend fun actualizarUsuario(usuario: Usuario) {
+        usuarioDAO.actualizarUsuario(usuario)
+    }
+
+    // Eliminar un usuario.
+    suspend fun eliminarUsuario(usuario: Usuario) {
+        usuarioDAO.eliminarUsuario(usuario)
+    }
+
     // Actualizar el estado de un usuario.
     suspend fun actualizarEstadoUsuario(
         id: String,
@@ -34,6 +59,7 @@ class UsuarioRepositorio(
         )
     }
 
+    // Asignar o quitar una faena.
     suspend fun asignarFaena(
         usuarioId: String,
         faenaId: Long?
@@ -42,5 +68,12 @@ class UsuarioRepositorio(
             usuarioId = usuarioId,
             faenaId = faenaId
         )
+    }
+
+    // Obtener un supervisor activo por su ID.
+    suspend fun obtenerSupervisorActivo(
+        supervisorId: String
+    ): Usuario? {
+        return usuarioDAO.obtenerSupervisorActivo(supervisorId)
     }
 }
