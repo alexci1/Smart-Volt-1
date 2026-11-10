@@ -9,14 +9,12 @@ class AsistenciaRepositorio(
     private val asistenciaDAO: AsistenciaDAO
 ) {
 
-    // Registrar una marcación.
     suspend fun registrarAsistencia(
         asistencia: Asistencia
     ): Long {
         return asistenciaDAO.registrarAsistencia(asistencia)
     }
 
-    // Registrar la siguiente marcación de forma transaccional.
     suspend fun registrarSiguienteMarcacion(
         usuarioId: String,
         fechaHora: Long
@@ -27,17 +25,21 @@ class AsistenciaRepositorio(
         )
     }
 
-    // Consultar el historial de un operario.
     fun listarAsistenciasPorUsuario(
         usuarioId: String
     ): Flow<List<Asistencia>> {
         return asistenciaDAO.listarAsistenciasPorUsuario(usuarioId)
     }
 
-    // Obtener la última marcación.
     suspend fun obtenerUltimaAsistencia(
         usuarioId: String
     ): Asistencia? {
         return asistenciaDAO.obtenerUltimaAsistencia(usuarioId)
+    }
+
+    fun listarAsistenciasPorSupervisor(
+        supervisorId: String
+    ): Flow<List<Asistencia>> {
+        return asistenciaDAO.listarAsistenciasPorSupervisor(supervisorId)
     }
 }

@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.ui.view.operario
 
 import androidx.compose.foundation.layout.Arrangement

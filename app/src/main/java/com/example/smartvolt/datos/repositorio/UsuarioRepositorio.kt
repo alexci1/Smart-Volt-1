@@ -33,4 +33,14 @@ class UsuarioRepositorio(
             supervisorId = supervisorId
         )
     }
+
+    suspend fun asignarFaena(
+        usuarioId: String,
+        faenaId: Long?
+    ) {
+        usuarioDAO.asignarFaena(
+            usuarioId = usuarioId,
+            faenaId = faenaId
+        )
+    }
 }

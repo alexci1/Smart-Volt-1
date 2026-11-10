@@ -12,11 +12,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AsistenciaDAO {
 
-    // Registrar una nueva marcación.
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun registrarAsistencia(asistencia: Asistencia): Long
 
-    // Consultar todas las marcaciones de un usuario.
     @Query("""
         SELECT * FROM asistencias
         WHERE usuarioId = :usuarioId
@@ -26,7 +24,6 @@ interface AsistenciaDAO {
         usuarioId: String
     ): Flow<List<Asistencia>>
 
-    // Obtener la última marcación realizada por un usuario.
     @Query("""
         SELECT * FROM asistencias
         WHERE usuarioId = :usuarioId
@@ -37,7 +34,19 @@ interface AsistenciaDAO {
         usuarioId: String
     ): Asistencia?
 
-    // Registrar la siguiente marcación dentro de una transacción.
+    @Query("""
+        SELECT asistencias.*
+        FROM asistencias
+        INNER JOIN usuarios
+            ON asistencias.usuarioId = usuarios.id
+        WHERE usuarios.supervisorId = :supervisorId
+          AND usuarios.rol = 'OPERARIO'
+        ORDER BY asistencias.fechaHora DESC, asistencias.id DESC
+    """)
+    fun listarAsistenciasPorSupervisor(
+        supervisorId: String
+    ): Flow<List<Asistencia>>
+
     @Transaction
     suspend fun registrarSiguienteMarcacion(
         usuarioId: String,

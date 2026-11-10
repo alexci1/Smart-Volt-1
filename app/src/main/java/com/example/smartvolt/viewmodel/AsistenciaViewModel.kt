@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.viewmodel
 
 import androidx.lifecycle.ViewModel

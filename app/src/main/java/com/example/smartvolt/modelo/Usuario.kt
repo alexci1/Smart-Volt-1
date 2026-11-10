@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.modelo
 
 import androidx.room.Entity
@@ -20,5 +19,7 @@ data class Usuario(
 
     val activo: Boolean = true,
 
-    val supervisorId: String? = null
+    val supervisorId: String? = null,
+
+    val faenaId: Long? = null
 )

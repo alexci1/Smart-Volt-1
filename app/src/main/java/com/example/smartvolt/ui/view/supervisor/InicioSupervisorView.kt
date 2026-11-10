@@ -41,6 +41,12 @@ import com.example.smartvolt.ui.theme.TextoSecundario
 import com.example.smartvolt.ui.theme.VerdeVolt
 import com.example.smartvolt.viewmodel.UsuarioViewModel
 import com.example.smartvolt.viewmodel.UsuarioViewModelFactory
+import com.example.smartvolt.datos.repositorio.AsistenciaRepositorio
+import com.example.smartvolt.modelo.Asistencia
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 
 @Composable
 fun InicioSupervisorView(
@@ -66,6 +72,18 @@ fun InicioSupervisorView(
     )
 
     val estado by usuarioViewModel.uiState.collectAsState()
+
+    val asistenciaDAO = remember {
+        AppDataBase.obtenerBaseDatos(context).asistenciaDAO()
+    }
+
+    val asistenciaRepositorio = remember(asistenciaDAO) {
+        AsistenciaRepositorio(asistenciaDAO)
+    }
+
+    val asistencias by asistenciaRepositorio
+        .listarAsistenciasPorSupervisor(usuario.id)
+        .collectAsState(initial = emptyList())
 
     LaunchedEffect(usuario.id) {
         usuarioViewModel.observarPersonalPorSupervisor(usuario.id)
@@ -95,14 +113,14 @@ fun InicioSupervisorView(
                     mensajeError = estado.mensajeErrorPersonal
                 )
 
-                2 -> SeccionSupervisor(
-                    titulo = "Asistencia del equipo",
-                    descripcion = "Supervisa las marcaciones de entrada y salida de los trabajadores."
+                2 -> SeccionAsistenciaEquipo(
+                    personal = estado.personalACargo,
+                    asistencias = asistencias
                 )
 
-                3 -> SeccionSupervisor(
-                    titulo = "Reportes de actividad",
-                    descripcion = "Consulta los reportes relacionados con las jornadas y actividades de tu equipo."
+                3 -> SeccionReportesEquipo(
+                    personal = estado.personalACargo,
+                    asistencias = asistencias
                 )
             }
         }
@@ -434,3 +452,332 @@ fun SeccionPersonalACargo(
         }
     }
 }
+
+
+@Composable
+fun SeccionAsistenciaEquipo(
+        personal: List<Usuario>,
+        asistencias: List<Asistencia>
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "CONTROL DE JORNADA",
+                    color = TextoSecundario,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                Text(
+                    text = "Asistencia del equipo",
+                    color = AzulOscuro,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+
+                Text(
+                    text = "Registro de entradas y salidas de tus trabajadores.",
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            if (asistencias.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    border = BorderStroke(1.dp, Borde)
+                ) {
+                    Text(
+                        text = "Todavía no existen marcaciones registradas para tu equipo.",
+                        modifier = Modifier.padding(18.dp),
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                Surface(
+                    color = AzulMedio,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "${asistencias.size} marcaciones registradas",
+                        color = VerdeVolt,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 8.dp
+                        )
+                    )
+                }
+
+                asistencias.forEach { asistencia ->
+                    val trabajador = personal.firstOrNull {
+                        it.id == asistencia.usuarioId
+                    }
+
+                    val esEntrada = asistencia.tipo == "ENTRADA"
+                    val fecha = remember(asistencia.fechaHora) {
+                        SimpleDateFormat(
+                            "dd/MM/yyyy - HH:mm",
+                            Locale.forLanguageTag("es-CL")
+                        ).format(Date(asistencia.fechaHora))
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Borde)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
+                                    Text(
+                                        text = trabajador?.nombreCompleto
+                                            ?: asistencia.usuarioId,
+                                        color = AzulOscuro,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+
+                                    Text(
+                                        text = "ID: ${asistencia.usuarioId}",
+                                        color = TextoSecundario,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+
+                                Surface(
+                                    color = if (esEntrada) {
+                                        Color(0xFFEBFBEE)
+                                    } else {
+                                        Color(0xFFFFEEEE)
+                                    },
+                                    shape = RoundedCornerShape(7.dp)
+                                ) {
+                                    Text(
+                                        text = asistencia.tipo,
+                                        color = if (esEntrada) {
+                                            Color(0xFF27834A)
+                                        } else {
+                                            Color(0xFFBA3030)
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(
+                                            horizontal = 10.dp,
+                                            vertical = 6.dp
+                                        )
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = Borde)
+
+                            Text(
+                                text = fecha,
+                                color = TextoSecundario,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun SeccionReportesEquipo(
+        personal: List<Usuario>,
+        asistencias: List<Asistencia>
+    ) {
+        val ultimaMarcacionPorUsuario = asistencias
+            .groupBy { it.usuarioId }
+            .mapValues { (_, marcas) ->
+                marcas.maxWithOrNull(
+                    compareBy<Asistencia> { it.fechaHora }
+                        .thenBy { it.id }
+                )
+            }
+
+        val trabajadoresEnJornada = ultimaMarcacionPorUsuario.values.count {
+            it?.tipo == "ENTRADA"
+        }
+
+        val trabajadoresFueraDeJornada = ultimaMarcacionPorUsuario.values.count {
+            it?.tipo == "SALIDA"
+        }
+
+        val totalEntradas = asistencias.count {
+            it.tipo == "ENTRADA"
+        }
+
+        val totalSalidas = asistencias.count {
+            it.tipo == "SALIDA"
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "RESUMEN OPERACIONAL",
+                    color = TextoSecundario,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                Text(
+                    text = "Reportes de actividad",
+                    color = AzulOscuro,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+
+                Text(
+                    text = "Resumen de las marcaciones registradas por tu equipo.",
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                TarjetaResumenSupervisor(
+                    titulo = "Personal asignado",
+                    valor = personal.size.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+
+                TarjetaResumenSupervisor(
+                    titulo = "En jornada",
+                    valor = trabajadoresEnJornada.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                TarjetaResumenSupervisor(
+                    titulo = "Entradas",
+                    valor = totalEntradas.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+
+                TarjetaResumenSupervisor(
+                    titulo = "Salidas",
+                    valor = totalSalidas.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
+                border = BorderStroke(1.dp, Borde),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Estado actual del equipo",
+                        color = AzulOscuro,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text(
+                        text = "$trabajadoresEnJornada trabajadores con última marcación de entrada.",
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Text(
+                        text = "$trabajadoresFueraDeJornada trabajadores con última marcación de salida.",
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Text(
+                        text = "${personal.size - ultimaMarcacionPorUsuario.size} trabajadores sin marcaciones.",
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            Text(
+                text = "Nota: los totales de entradas y salidas corresponden a todas las marcaciones históricas disponibles, no solamente al día actual.",
+                color = TextoSecundario,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+
+    @Composable
+    private fun TarjetaResumenSupervisor(
+        titulo: String,
+        valor: String,
+        modifier: Modifier = Modifier
+    ) {
+        Card(
+            modifier = modifier,
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            border = BorderStroke(1.dp, Borde),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = titulo,
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Text(
+                    text = valor,
+                    color = AzulOscuro,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
+        }
+    }
+
+

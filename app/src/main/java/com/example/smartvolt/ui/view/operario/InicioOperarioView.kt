@@ -9,17 +9,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smartvolt.datos.local.AppDataBase
 import com.example.smartvolt.datos.repositorio.AsistenciaRepositorio
+import com.example.smartvolt.modelo.Faena
 import com.example.smartvolt.modelo.Usuario
 import com.example.smartvolt.ui.components.PanelPrincipalView
 import com.example.smartvolt.viewmodel.AsistenciaViewModel
@@ -32,17 +38,14 @@ fun InicioOperarioView(
 ) {
     val contexto = LocalContext.current
 
-    // Obtener la base de datos local.
     val baseDatos = remember(contexto) {
         AppDataBase.obtenerBaseDatos(contexto)
     }
 
-    // Crear el repositorio de asistencia.
     val repositorio = remember(baseDatos) {
         AsistenciaRepositorio(baseDatos.asistenciaDAO())
     }
 
-    // Crear la fábrica del ViewModel.
     val factory = remember(repositorio, usuario.id) {
         AsistenciaViewModelFactory(
             repositorio = repositorio,
@@ -50,11 +53,43 @@ fun InicioOperarioView(
         )
     }
 
-    // Obtener el ViewModel asociado al usuario autenticado.
     val asistenciaViewModel: AsistenciaViewModel = viewModel(
         key = usuario.id,
         factory = factory
     )
+
+    var faenaAsignada by remember(usuario.id) {
+        mutableStateOf<Faena?>(null)
+    }
+
+    var cargandoFaena by remember(usuario.id) {
+        mutableStateOf(false)
+    }
+
+    var errorFaena by remember(usuario.id) {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(usuario.id, usuario.faenaId) {
+        val faenaId = usuario.faenaId
+
+        faenaAsignada = null
+        errorFaena = false
+
+        if (faenaId != null) {
+            cargandoFaena = true
+
+            try {
+                faenaAsignada = baseDatos.faenaDAO().obtenerFaena(faenaId)
+            } catch (e: Exception) {
+                errorFaena = true
+            } finally {
+                cargandoFaena = false
+            }
+        } else {
+            cargandoFaena = false
+        }
+    }
 
     PanelPrincipalView(
         nombreRol = "OPERARIO",
@@ -69,10 +104,11 @@ fun InicioOperarioView(
         onCerrarSesion = onCerrarSesion,
 
         contenidoPersonalizado = { indice, cambiarSeccion ->
-
             when (indice) {
-
                 0 -> ContenidoInicioOperario(
+                    faena = faenaAsignada,
+                    cargandoFaena = cargandoFaena,
+                    errorFaena = errorFaena,
                     onCambiarSeccion = cambiarSeccion
                 )
 
@@ -92,12 +128,14 @@ fun InicioOperarioView(
 
 @Composable
 private fun ContenidoInicioOperario(
+    faena: Faena?,
+    cargandoFaena: Boolean,
+    errorFaena: Boolean,
     onCambiarSeccion: (Int) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
-
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.primary,
@@ -127,6 +165,115 @@ private fun ContenidoInicioOperario(
             }
         }
 
+        // Información de la faena asignada.
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Mi faena asignada",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    when {
+                        cargandoFaena -> {
+                            CircularProgressIndicator()
+                            Text(
+                                text = "Consultando tu faena...",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+
+                        errorFaena -> {
+                            Text(
+                                text = "No fue posible consultar tu faena. Intenta nuevamente más tarde.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        faena == null -> {
+                            Text(
+                                text = "Sin faena asignada",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Text(
+                                text = "Actualmente no tienes una faena asignada. Contacta a tu supervisor o administrador.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        else -> {
+                            Text(
+                                text = faena.nombre,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Text(
+                                text = "Ubicación: ${faena.ubicacion}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            if (faena.descripcion.isNotBlank()) {
+                                Text(
+                                    text = faena.descripcion,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Text(
+                                text = "Inicio: ${faena.fechaInicio}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Text(
+                                text = "Término: ${faena.fechaTermino}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
+                            Surface(
+                                shape = RoundedCornerShape(50.dp),
+                                color = if (faena.activa) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer
+                                }
+                            ) {
+                                Text(
+                                    text = if (faena.activa) "Faena activa" else "Faena finalizada",
+                                    modifier = Modifier.padding(
+                                        horizontal = 14.dp,
+                                        vertical = 7.dp
+                                    ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (faena.activa) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Text(
             text = "Accesos rápidos",
             style = MaterialTheme.typography.titleLarge,
@@ -140,7 +287,6 @@ private fun ContenidoInicioOperario(
         )
 
         accesos.forEachIndexed { indice, acceso ->
-
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

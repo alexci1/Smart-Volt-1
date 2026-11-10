@@ -8,16 +8,19 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.smartvolt.datos.local.dao.AsistenciaDAO
+import com.example.smartvolt.datos.local.dao.FaenaDAO
 import com.example.smartvolt.datos.local.dao.UsuarioDAO
 import com.example.smartvolt.modelo.Asistencia
+import com.example.smartvolt.modelo.Faena
 import com.example.smartvolt.modelo.Usuario
 
 @Database(
     entities = [
         Usuario::class,
-        Asistencia::class
+        Asistencia::class,
+        Faena::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class AppDataBase : RoomDatabase() {
@@ -25,6 +28,8 @@ abstract class AppDataBase : RoomDatabase() {
     abstract fun usuarioDAO(): UsuarioDAO
 
     abstract fun asistenciaDAO(): AsistenciaDAO
+
+    abstract fun faenaDAO(): FaenaDAO
 
     companion object {
 
@@ -39,6 +44,27 @@ abstract class AppDataBase : RoomDatabase() {
             }
         }
 
+        private val MIGRACION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS faenas (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        nombre TEXT NOT NULL,
+                        ubicacion TEXT NOT NULL,
+                        descripcion TEXT NOT NULL,
+                        fechaInicio TEXT NOT NULL,
+                        fechaTermino TEXT NOT NULL,
+                        activa INTEGER NOT NULL
+                    )
+                """.trimIndent())
+
+                db.execSQL(
+                    "ALTER TABLE usuarios ADD COLUMN faenaId INTEGER DEFAULT NULL"
+                )
+            }
+        }
+
         fun obtenerBaseDatos(context: Context): AppDataBase {
             return INSTANCIA ?: synchronized(this) {
 
@@ -47,7 +73,10 @@ abstract class AppDataBase : RoomDatabase() {
                     AppDataBase::class.java,
                     "asistencia_faena_db"
                 )
-                    .addMigrations(MIGRACION_3_4)
+                    .addMigrations(
+                        MIGRACION_3_4,
+                        MIGRACION_4_5
+                    )
                     .build()
 
                 INSTANCIA = instancia

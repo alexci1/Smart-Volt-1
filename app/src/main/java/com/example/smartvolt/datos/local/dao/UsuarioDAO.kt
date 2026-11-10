@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.datos.local.dao
 
 import androidx.room.Dao
@@ -44,4 +43,10 @@ interface UsuarioDAO {
     fun listarPersonalPorSupervisor(
         supervisorId: String
     ): Flow<List<Usuario>>
+
+    @Query("UPDATE usuarios SET faenaId = :faenaId WHERE id = :usuarioId")
+    suspend fun asignarFaena(
+        usuarioId: String,
+        faenaId: Long?
+    )
 }

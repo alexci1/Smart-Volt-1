@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -149,5 +148,30 @@ class UsuarioViewModel(
             mensaje = null,
             mensajeError = null
         )
+    }
+
+    fun asignarFaena(
+        usuarioId: String,
+        faenaId: Long?
+    ) {
+        viewModelScope.launch {
+            try {
+                repositorio.asignarFaena(
+                    usuarioId = usuarioId,
+                    faenaId = faenaId
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    mensaje = "Asignación de faena actualizada.",
+                    mensajeError = null
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    mensajeError = "No fue posible asignar la faena."
+                )
+            }
+        }
     }
 }
