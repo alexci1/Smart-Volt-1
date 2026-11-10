@@ -1,3 +1,4 @@
+
 package com.example.smartvolt.datos.local.dao
 
 import androidx.room.Dao
@@ -26,4 +27,21 @@ interface UsuarioDAO {
 
     @Query("SELECT * FROM usuarios ORDER BY id ASC")
     fun listarUsuarios(): Flow<List<Usuario>>
+
+    @Query("UPDATE usuarios SET activo = :activo WHERE id = :id")
+    suspend fun actualizarEstadoUsuario(
+        id: String,
+        activo: Boolean
+    )
+
+    // Obtener operarios asignados a un supervisor
+    @Query("""
+        SELECT * FROM usuarios
+        WHERE supervisorId = :supervisorId
+        AND rol = 'OPERARIO'
+        ORDER BY nombreCompleto ASC
+    """)
+    fun listarPersonalPorSupervisor(
+        supervisorId: String
+    ): Flow<List<Usuario>>
 }
