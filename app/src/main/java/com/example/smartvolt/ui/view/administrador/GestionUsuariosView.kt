@@ -59,10 +59,20 @@ fun GestionUsuariosView(
         mutableStateOf(false)
     }
 
-    // Cerrar el formulario cuando el usuario se crea correctamente.
+    var usuarioEditando by remember {
+        mutableStateOf<Usuario?>(null)
+    }
+
+    // Cerrar formularios después de una operación exitosa.
     LaunchedEffect(estado.mensaje) {
-        if (estado.mensaje == "Usuario creado correctamente.") {
-            mostrarFormulario = false
+        when (estado.mensaje) {
+            "Usuario creado correctamente." -> {
+                mostrarFormulario = false
+            }
+
+            "Usuario actualizado correctamente." -> {
+                usuarioEditando = null
+            }
         }
     }
 
@@ -211,6 +221,10 @@ fun GestionUsuariosView(
                                     id = usuario.id,
                                     activo = activo
                                 )
+                            },
+                            onEditar = {
+                                usuarioViewModel.limpiarMensajes()
+                                usuarioEditando = usuario
                             }
                         )
                     }
@@ -239,6 +253,24 @@ fun GestionUsuariosView(
                     cargo = cargo,
                     rol = rol,
                     supervisorId = supervisorId
+                )
+            }
+        )
+    }
+
+    // FORMULARIO DE EDICIÓN
+    usuarioEditando?.let { usuario ->
+        FormularioEditarUsuario(
+            usuario = usuario,
+            supervisores = supervisores,
+            mensajeError = estado.mensajeError,
+            onCerrar = {
+                usuarioEditando = null
+                usuarioViewModel.limpiarMensajes()
+            },
+            onGuardar = { usuarioActualizado ->
+                usuarioViewModel.actualizarUsuario(
+                    usuarioActualizado
                 )
             }
         )
@@ -300,7 +332,6 @@ private fun FormularioCrearUsuario(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-
                 OutlinedTextField(
                     value = id,
                     onValueChange = { id = it.uppercase() },
@@ -383,6 +414,7 @@ private fun FormularioCrearUsuario(
                                 val supervisor = supervisores.find {
                                     it.id == seleccionado
                                 }
+
                                 supervisor?.let {
                                     "${it.nombreCompleto} (${it.id})"
                                 } ?: seleccionado
@@ -547,7 +579,8 @@ private fun SelectorDesplegable(
 private fun TarjetaUsuario(
     usuario: Usuario,
     actualizando: Boolean,
-    onCambiarEstado: (Boolean) -> Unit
+    onCambiarEstado: (Boolean) -> Unit,
+    onEditar: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -609,6 +642,19 @@ private fun TarjetaUsuario(
                     style = MaterialTheme.typography.bodySmall,
                     color = TextoSecundario
                 )
+
+                OutlinedButton(
+                    onClick = onEditar,
+                    enabled = !actualizando,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(top = 6.dp)
+                ) {
+                    Text(
+                        text = "Editar usuario",
+                        color = AzulOscuro,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             if (actualizando) {
@@ -631,4 +677,205 @@ private fun TarjetaUsuario(
             }
         }
     }
+}
+
+// --------------------------------------------------
+// FORMULARIO DE EDICIÓN
+// --------------------------------------------------
+
+@Composable
+private fun FormularioEditarUsuario(
+    usuario: Usuario,
+    supervisores: List<Usuario>,
+    mensajeError: String?,
+    onCerrar: () -> Unit,
+    onGuardar: (Usuario) -> Unit
+) {
+    var nombre by remember(usuario.id) {
+        mutableStateOf(usuario.nombreCompleto)
+    }
+
+    var cargo by remember(usuario.id) {
+        mutableStateOf(usuario.cargo)
+    }
+
+    var rol by remember(usuario.id) {
+        mutableStateOf(usuario.rol)
+    }
+
+    var supervisorId by remember(usuario.id) {
+        mutableStateOf(usuario.supervisorId ?: "")
+    }
+
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        shape = RoundedCornerShape(18.dp),
+        containerColor = Color.White,
+        title = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Editar usuario",
+                    color = AzulOscuro,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+
+                Text(
+                    text = "Modifica los datos de la cuenta.",
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = usuario.id,
+                    onValueChange = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("ID de usuario") },
+                    enabled = false,
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Nombre completo") },
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = cargo,
+                    onValueChange = { cargo = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Cargo") },
+                    singleLine = true
+                )
+
+                Text(
+                    text = "ROL DEL USUARIO",
+                    color = TextoSecundario,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                SelectorDesplegable(
+                    valor = rol,
+                    opciones = listOf(
+                        "OPERARIO",
+                        "SUPERVISOR",
+                        "ADMINISTRADOR"
+                    ),
+                    habilitado = true,
+                    alSeleccionar = {
+                        rol = it
+                        supervisorId = ""
+                    }
+                )
+
+                if (rol == "OPERARIO") {
+                    Text(
+                        text = "SUPERVISOR ASIGNADO",
+                        color = TextoSecundario,
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+
+                    val supervisoresDisponibles = supervisores.filter {
+                        it.id != usuario.id
+                    }
+
+                    SelectorDesplegable(
+                        valor = supervisorId,
+                        opciones = listOf("") + supervisoresDisponibles.map { it.id },
+                        habilitado = true,
+                        textoVacio = "Sin supervisor",
+                        etiqueta = { seleccionado ->
+                            if (seleccionado.isBlank()) {
+                                "Sin supervisor"
+                            } else {
+                                val supervisor = supervisoresDisponibles.find {
+                                    it.id == seleccionado
+                                }
+
+                                supervisor?.let {
+                                    "${it.nombreCompleto} (${it.id})"
+                                } ?: seleccionado
+                            }
+                        },
+                        alSeleccionar = {
+                            supervisorId = it
+                        }
+                    )
+
+                    if (supervisoresDisponibles.isEmpty()) {
+                        Text(
+                            text = "No hay otros supervisores activos registrados.",
+                            color = TextoSecundario,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                mensajeError?.let { error ->
+                    Surface(
+                        color = Color(0xFFFFEEEE),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = error,
+                            color = Color(0xFFBA3030),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onGuardar(
+                        usuario.copy(
+                            nombreCompleto = nombre,
+                            cargo = cargo,
+                            rol = rol,
+                            supervisorId = if (rol == "OPERARIO") {
+                                supervisorId.takeIf { it.isNotBlank() }
+                            } else {
+                                null
+                            }
+                        )
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AzulOscuro,
+                    contentColor = VerdeVolt
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Guardar cambios",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCerrar) {
+                Text(
+                    text = "Cancelar",
+                    color = TextoSecundario
+                )
+            }
+        }
+    )
 }

@@ -36,6 +36,8 @@ class UsuarioViewModel(
     private val bloqueoCreacion = Mutex()
     private val bloqueoActualizacion = Mutex()
 
+    private val bloqueoEdicion = Mutex()
+
     init {
         observarUsuarios()
     }
@@ -300,8 +302,78 @@ class UsuarioViewModel(
 
     fun actualizarUsuario(usuario: Usuario) {
         viewModelScope.launch {
+            if (!bloqueoEdicion.tryLock()) return@launch
+
             try {
-                repositorio.actualizarUsuario(usuario)
+                _uiState.value = _uiState.value.copy(
+                    mensaje = null,
+                    mensajeError = null
+                )
+
+                val nombreLimpio = usuario.nombreCompleto.trim()
+                val cargoLimpio = usuario.cargo.trim()
+                val rolLimpio = usuario.rol.trim().uppercase()
+
+                // Validar campos obligatorios.
+                if (
+                    nombreLimpio.isBlank() ||
+                    cargoLimpio.isBlank()
+                ) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "El nombre y el cargo son obligatorios."
+                    )
+                    return@launch
+                }
+
+                // Validar rol.
+                val rolesPermitidos = listOf(
+                    "OPERARIO",
+                    "SUPERVISOR",
+                    "ADMINISTRADOR"
+                )
+
+                if (rolLimpio !in rolesPermitidos) {
+                    _uiState.value = _uiState.value.copy(
+                        mensajeError = "El rol seleccionado no es válido."
+                    )
+                    return@launch
+                }
+
+                // Validar supervisor de operarios.
+                val supervisorId = if (rolLimpio == "OPERARIO") {
+                    usuario.supervisorId
+                        ?.trim()
+                        ?.uppercase()
+                        ?.takeIf { it.isNotBlank() }
+                } else {
+                    null
+                }
+
+                if (
+                    rolLimpio == "OPERARIO" &&
+                    supervisorId != null
+                ) {
+                    val supervisor = repositorio.obtenerSupervisorActivo(
+                        supervisorId
+                    )
+
+                    if (supervisor == null) {
+                        _uiState.value = _uiState.value.copy(
+                            mensajeError = "El supervisor seleccionado no existe o está inactivo."
+                        )
+                        return@launch
+                    }
+                }
+
+                // Construir usuario actualizado.
+                val usuarioActualizado = usuario.copy(
+                    nombreCompleto = nombreLimpio,
+                    cargo = cargoLimpio,
+                    rol = rolLimpio,
+                    supervisorId = supervisorId
+                )
+
+                repositorio.actualizarUsuario(usuarioActualizado)
 
                 _uiState.value = _uiState.value.copy(
                     mensaje = "Usuario actualizado correctamente.",
@@ -314,6 +386,8 @@ class UsuarioViewModel(
                 _uiState.value = _uiState.value.copy(
                     mensajeError = "No fue posible actualizar el usuario."
                 )
+            } finally {
+                bloqueoEdicion.unlock()
             }
         }
     }
