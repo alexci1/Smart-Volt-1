@@ -18,9 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.smartvolt.modelo.Asistencia
 import com.example.smartvolt.viewmodel.AsistenciaViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.example.smartvolt.util.FechaHoraUtils
 
 @Composable
 fun HistorialOperarioView(
@@ -116,19 +114,10 @@ private fun TarjetaHistorial(
             }
 
             Text(
-                text = formatearFecha(asistencia.fechaHora),
+                text = FechaHoraUtils.formatearFechaHora(asistencia.fechaHora),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
-}
-
-private fun formatearFecha(fechaHora: Long): String {
-    val formato = SimpleDateFormat(
-        "dd/MM/yyyy - HH:mm",
-        Locale.getDefault()
-    )
-
-    return formato.format(Date(fechaHora))
 }

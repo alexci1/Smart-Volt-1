@@ -43,9 +43,10 @@ import com.example.smartvolt.viewmodel.UsuarioViewModel
 import com.example.smartvolt.viewmodel.UsuarioViewModelFactory
 import com.example.smartvolt.datos.repositorio.AsistenciaRepositorio
 import com.example.smartvolt.modelo.Asistencia
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.example.smartvolt.modelo.Faena
+import com.example.smartvolt.util.FechaHoraUtils
 
 
 @Composable
@@ -73,6 +74,35 @@ fun InicioSupervisorView(
 
     val estado by usuarioViewModel.uiState.collectAsState()
 
+    // Consultar las faenas asignadas al personal del supervisor.
+    val faenaDAO = remember {
+        AppDataBase.obtenerBaseDatos(context).faenaDAO()
+    }
+
+    var faenasPorUsuario by remember {
+        mutableStateOf<Map<String, Faena>>(emptyMap())
+    }
+
+    LaunchedEffect(estado.personalACargo) {
+        val resultado = mutableMapOf<String, Faena>()
+
+        estado.personalACargo.forEach { trabajador ->
+            trabajador.faenaId?.let { faenaId ->
+                try {
+                    val faena = faenaDAO.obtenerFaena(faenaId)
+
+                    if (faena != null) {
+                        resultado[trabajador.id] = faena
+                    }
+                } catch (e: Exception) {
+                    // Si una consulta falla, se conserva el resto del equipo.
+                }
+            }
+        }
+
+        faenasPorUsuario = resultado
+    }
+
     val asistenciaDAO = remember {
         AppDataBase.obtenerBaseDatos(context).asistenciaDAO()
     }
@@ -84,6 +114,7 @@ fun InicioSupervisorView(
     val asistencias by asistenciaRepositorio
         .listarAsistenciasPorSupervisor(usuario.id)
         .collectAsState(initial = emptyList())
+
 
     LaunchedEffect(usuario.id) {
         usuarioViewModel.observarPersonalPorSupervisor(usuario.id)
@@ -110,7 +141,8 @@ fun InicioSupervisorView(
                 1 -> SeccionPersonalACargo(
                     personal = estado.personalACargo,
                     cargando = estado.cargandoPersonal,
-                    mensajeError = estado.mensajeErrorPersonal
+                    mensajeError = estado.mensajeErrorPersonal,
+                    faenasPorUsuario = faenasPorUsuario
                 )
 
                 2 -> SeccionAsistenciaEquipo(
@@ -297,7 +329,8 @@ fun SeccionSupervisor(
 fun SeccionPersonalACargo(
     personal: List<Usuario>,
     cargando: Boolean,
-    mensajeError: String?
+    mensajeError: String?,
+    faenasPorUsuario: Map<String, Faena>
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -444,7 +477,56 @@ fun SeccionPersonalACargo(
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextoSecundario
+
                             )
+                            HorizontalDivider(color = Borde)
+
+                            val faena = faenasPorUsuario[trabajador.id]
+
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "FAENA ASIGNADA",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextoSecundario
+                                )
+
+                                Text(
+                                    text = when {
+                                        trabajador.faenaId == null -> "Sin faena asignada"
+                                        faena != null -> faena.nombre
+                                        else -> "Faena no disponible"
+                                    },
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AzulOscuro
+                                )
+
+                                if (faena != null) {
+                                    Text(
+                                        text = "Ubicación: ${faena.ubicacion}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = TextoSecundario
+                                    )
+
+                                    Text(
+                                        text = if (faena.activa) {
+                                            "Estado: Faena activa"
+                                        } else {
+                                            "Estado: Faena finalizada"
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (faena.activa) {
+                                            Color(0xFF27834A)
+                                        } else {
+                                            Color(0xFFBA3030)
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -526,10 +608,7 @@ fun SeccionAsistenciaEquipo(
 
                     val esEntrada = asistencia.tipo == "ENTRADA"
                     val fecha = remember(asistencia.fechaHora) {
-                        SimpleDateFormat(
-                            "dd/MM/yyyy - HH:mm",
-                            Locale.forLanguageTag("es-CL")
-                        ).format(Date(asistencia.fechaHora))
+                        FechaHoraUtils.formatearFechaHora(asistencia.fechaHora)
                     }
 
                     Card(
