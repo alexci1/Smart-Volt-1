@@ -17,8 +17,8 @@ interface UsuarioDAO {
     @Query("SELECT * FROM usuarios WHERE id = :id")
     suspend fun obtenerUsuarioPorId(id: String): Usuario?
 
-    // Crear un usuario sin sobrescribir registros existentes.
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    // Crear o reemplazar un usuario si ya existe.
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun agregarUsuario(usuario: Usuario)
 
     // Actualizar los datos de un usuario.

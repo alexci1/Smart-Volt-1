@@ -1,4 +1,3 @@
-
 package com.example.smartvolt.datos.local
 
 import android.content.Context
@@ -77,6 +76,7 @@ abstract class AppDataBase : RoomDatabase() {
                         MIGRACION_3_4,
                         MIGRACION_4_5
                     )
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
 
                 INSTANCIA = instancia
